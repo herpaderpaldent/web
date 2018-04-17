@@ -3,7 +3,7 @@
 /*
  * This file is part of SeAT
  *
- * Copyright (C) 2015, 2016, 2017  Leon Jacobs
+ * Copyright (C) 2015, 2016, 2017, 2018  Leon Jacobs
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ class ProfileController extends Controller
 
         // Settings value possibilities
         $characters = $this->getUserGroupCharacters(auth()->user()->groups);
-        $scopes = auth()->user()->refresh_token->scopes;
+        $scopes = optional(auth()->user()->refresh_token)->scopes;
         $skins = Profile::$options['skins'];
         $languages = config('web.locale.languages');
         $sidebar = Profile::$options['sidebar'];
@@ -112,7 +112,7 @@ class ProfileController extends Controller
         $accounts = $this->getUserGroupCharacters(auth()->user()->groups);
 
         // iterating over all retrieved account and updating email
-        $accounts->each(function($account) use ($request) {
+        $accounts->each(function ($account) use ($request) {
             $account->email = $request->new_email;
             $account->save();
         });
