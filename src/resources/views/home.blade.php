@@ -1,8 +1,15 @@
-@extends('web::layouts.grids.6-6')
+@extends('web::layouts.grids.12-6-6')
 
 @section('title', trans('web::seat.home'))
 @section('page_header', trans('web::seat.home'))
 @section('page_description', trans('web::seat.dashboard'))
+
+@section('row')
+  <div class="row">
+    @each('web::includes.evemon',auth()->user()->group->users,'user')
+  </div>
+
+@stop
 
 @section('left')
 
@@ -229,5 +236,7 @@
         });
       });
   </script>
+
+  @include('web::includes.javascript.id-to-name')
 
 @endpush
