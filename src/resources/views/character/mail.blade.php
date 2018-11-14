@@ -9,7 +9,17 @@
 
   <div class="panel panel-default">
     <div class="panel-heading">
-      <h3 class="panel-title">{{ trans('web::seat.mail') }}</h3>
+      <h3 class="panel-title">
+        {{ trans('web::seat.mail') }}
+        @if(auth()->user()->has('character.jobs'))
+          <span class="pull-right">
+            <a href="{{ route('tools.jobs.dispatch', ['character_id' => $request->character_id, 'job_name' => 'character.mail']) }}"
+               style="color: #000000">
+              <i class="fa fa-refresh" data-toggle="tooltip" title="{{ trans('web::seat.update_mail') }}"></i>
+            </a>
+          </span>
+        @endif
+      </h3>
     </div>
     <div class="panel-body">
 
@@ -47,34 +57,34 @@
 
 @push('javascript')
 
-<script>
+  <script>
 
-  $(function () {
-    $('table#character-mail').DataTable({
-      processing      : true,
-      serverSide      : true,
-      ajax            : '{{ route('character.view.mail.data', ['character_id' => $request->character_id]) }}',
-      columns         : [
-        {data: 'timestamp', name: 'timestamp', render: human_readable},
-        {data: 'from', name: 'from', searchable: false},
-        {data: 'subject', name: 'subject'},
-        {data: 'body', name: 'body.body', visible: false},
-        {data: 'tocounts', name: 'tocounts', searchable: false},
-        {data: 'read', name: 'read', searchable: false}
-      ],
-      dom: '<"row"<"col-sm-6"l><"col-sm-6"f>><"row"<"col-sm-6"i><"col-sm-6"p>>rt<"row"<"col-sm-6"i><"col-sm-6"p>><"row"<"col-sm-6"l><"col-sm-6"f>>',
-      'fnDrawCallback': function () {
-        $(document).ready(function () {
-          $('img').unveil(100);
+    $(function () {
+      $('table#character-mail').DataTable({
+        processing      : true,
+        serverSide      : true,
+        ajax            : '{{ route('character.view.mail.data', ['character_id' => $request->character_id]) }}',
+        columns         : [
+          {data: 'timestamp', name: 'timestamp', render: human_readable},
+          {data: 'from', name: 'from', searchable: false},
+          {data: 'subject', name: 'subject'},
+          {data: 'body', name: 'body.body', visible: false},
+          {data: 'tocounts', name: 'tocounts', searchable: false},
+          {data: 'read', name: 'read', searchable: false}
+        ],
+        dom             : '<"row"<"col-sm-6"l><"col-sm-6"f>><"row"<"col-sm-6"i><"col-sm-6"p>>rt<"row"<"col-sm-6"i><"col-sm-6"p>><"row"<"col-sm-6"l><"col-sm-6"f>>',
+        'fnDrawCallback': function () {
+          $(document).ready(function () {
+            $('img').unveil(100);
 
-          ids_to_names();
-        });
-      }
+            ids_to_names();
+          });
+        }
+      });
     });
-  });
 
-</script>
+  </script>
 
-@include('web::includes.javascript.id-to-name')
+  @include('web::includes.javascript.id-to-name')
 
 @endpush

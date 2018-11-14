@@ -57,6 +57,7 @@ class CorporationMenu extends AbstractMenu
      * @param  View $view
      *
      * @return void
+     * @throws \Seat\Web\Exceptions\PackageMenuBuilderException
      */
     public function compose(View $view)
     {
@@ -69,7 +70,8 @@ class CorporationMenu extends AbstractMenu
         if (! empty(config('package.corporation.menu'))) {
             foreach (config('package.corporation.menu') as $menu_data) {
                 $prepared_menu = $this->load_plugin_menu('corporation', $menu_data, true);
-                array_push($menu, $prepared_menu);
+                if (! is_null($prepared_menu))
+                    array_push($menu, $prepared_menu);
             }
         }
 

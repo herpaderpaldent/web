@@ -23,7 +23,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 
-class CreatePeopleTable extends Migration
+class CreateGroupRoleTable extends Migration
 {
     /**
      * Run the migrations.
@@ -33,14 +33,10 @@ class CreatePeopleTable extends Migration
     public function up()
     {
 
-        Schema::create('people', function (Blueprint $table) {
+        Schema::create('group_role', function (Blueprint $table) {
 
-            $table->increments('id');
-
-            $table->integer('main_character_id');
-            $table->string('main_character_name');
-
-            $table->timestamps();
+            $table->integer('role_id');
+            $table->integer('group_id');
         });
     }
 
@@ -52,6 +48,6 @@ class CreatePeopleTable extends Migration
     public function down()
     {
 
-        Schema::drop('people');
+        Schema::drop('role_group');
     }
 }

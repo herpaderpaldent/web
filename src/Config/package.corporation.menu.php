@@ -72,6 +72,13 @@ return [
         'route'          => 'corporation.view.market',
     ],
     [
+        'name'           => 'mining',
+        'label'          => 'web::seat.mining',
+        'permission'     => 'corporation.mining',
+        'highlight_view' => 'mining',
+        'route'          => 'corporation.view.mining_ledger',
+    ],
+    [
         'name'           => 'pocos',
         'label'          => 'web::seat.pocos',
         'permission'     => 'corporation.pocos',
@@ -92,6 +99,14 @@ return [
         'permission'     => 'corporation.starbases',
         'highlight_view' => 'starbases',
         'route'          => 'corporation.view.starbases',
+    ],
+    [
+        'name'           => 'structure',
+        'label'          => 'web::seat.structure',
+        'plural'         => true,
+        'permission'     => 'corporation.structures',
+        'highlight_view' => 'structures',
+        'route'          => 'corporation.view.structures',
     ],
     [
         'name'           => 'summary',

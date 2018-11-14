@@ -49,7 +49,7 @@ class ProfileController extends Controller
             ->take(50)->sortByDesc('created_at');
 
         // Settings value possibilities
-        $characters = $this->getUserGroupCharacters(auth()->user()->groups);
+        $characters = $this->getUserGroupCharacters(auth()->user()->group);
         $scopes = optional(auth()->user()->refresh_token)->scopes;
         $skins = Profile::$options['skins'];
         $languages = config('web.locale.languages');
@@ -72,17 +72,8 @@ class ProfileController extends Controller
     public function getUpdateUserSettings(ProfileSettings $request)
     {
 
-        // If the multifactor authentication is being disabled,
-        // clear out the token we have on record too.
-        if ($request->require_mfa == 'no' && Profile::get('require_mfa') == 'yes') {
-
-            auth()->user()->update(['mfa_token' => null]);
-        }
-
-        // Update the settings
+        // Update the rest of the settings
         Profile::set('main_character_id', $request->main_character_id);
-        Profile::set('main_character_name', $this->getCharacterNameById(
-            $request->main_character_id));
         Profile::set('skin', $request->skin);
         Profile::set('language', $request->language);
         Profile::set('sidebar', $request->sidebar);
@@ -93,29 +84,20 @@ class ProfileController extends Controller
 
         Profile::set('email_notifications', $request->email_notifications);
 
-        Profile::set('require_mfa', $request->require_mfa);
-
         return redirect()->back()
             ->with('success', 'Profile settings updated!');
-
     }
 
     /**
      * @param \Seat\Web\Http\Validation\EmailUpdate $request
      *
      * @return \Illuminate\Http\RedirectResponse
+     * @throws \Seat\Services\Exceptions\SettingException
      */
     public function postUpdateEmail(EmailUpdate $request)
     {
 
-        // retrieving all tied accounts
-        $accounts = $this->getUserGroupCharacters(auth()->user()->groups);
-
-        // iterating over all retrieved account and updating email
-        $accounts->each(function ($account) use ($request) {
-            $account->email = $request->new_email;
-            $account->save();
-        });
+        Profile::set('email_address', $request->new_email);
 
         return redirect()->back()
             ->with('success', 'Email updated!');
@@ -125,13 +107,12 @@ class ProfileController extends Controller
      * @param int $character_id
      *
      * @return \Illuminate\Http\RedirectResponse
-     * @throws \Seat\Services\Exceptions\SettingException
      */
     public function getChangeCharacter(int $character_id)
     {
 
         $user_characters = $this->getUserGroupCharacters(
-            auth()->user()->groups)->pluck('id');
+            auth()->user()->group)->pluck('id');
 
         // Prevent logins to arbitrary characters.
         if (! $user_characters->contains($character_id)) {
@@ -150,10 +131,7 @@ class ProfileController extends Controller
             'authentication',
         ]);
 
-        auth()->login(User::find($character_id), true);
-
-        setting(['main_character_id', $user->character_id]);
-        setting(['main_character_name', $user->name]);
+        auth()->login($user, true);
 
         return redirect()->back();
     }

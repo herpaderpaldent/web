@@ -25,7 +25,6 @@ namespace Seat\Web\Http\Controllers\Configuration;
 use Cache;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
-use Seat\Services\Settings\Seat;
 use Seat\Web\Http\Controllers\Controller;
 use Seat\Web\Http\Validation\SeatSettings;
 
@@ -62,10 +61,17 @@ class SeatController extends Controller
     public function postUpdateSettings(SeatSettings $request)
     {
 
-        Seat::set('registration', $request->registration);
-        Seat::set('admin_contact', $request->admin_contact);
-        Seat::set('allow_tracking', $request->allow_tracking);
-        Seat::set('require_activation', $request->require_activation);
+        setting(['registration', $request->registration], true);
+        setting(['admin_contact', $request->admin_contact], true);
+        setting(['allow_tracking', $request->allow_tracking], true);
+        setting(['cleanup_data', $request->cleanup_data], true);
+
+        // If the queue workers number has changed, kick off the horizon
+        // temrinate command to restart the workers.
+        if (setting('queue_workers', true) !== $request->queue_workers)
+            session()->flash('info', trans('web::seat.horizon_restart'));
+
+        setting(['queue_workers', $request->queue_workers], true);
 
         return redirect()->back()
             ->with('success', 'SeAT settings updated!');
@@ -96,8 +102,6 @@ class SeatController extends Controller
 
                 return 'Error fetching latest SDE version';
             }
-
-            return 'Loading...';
 
         });
 

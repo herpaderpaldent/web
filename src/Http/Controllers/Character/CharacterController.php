@@ -22,8 +22,10 @@
 
 namespace Seat\Web\Http\Controllers\Character;
 
+use Seat\Eveapi\Models\Character\CharacterInfo;
 use Seat\Services\Repositories\Character\Character;
 use Seat\Web\Http\Controllers\Controller;
+use Symfony\Component\HttpFoundation\Request;
 use Yajra\Datatables\Datatables;
 
 /**
@@ -45,12 +47,25 @@ class CharacterController extends Controller
     }
 
     /**
+     * @param \Symfony\Component\HttpFoundation\Request $request
+     *
      * @return mixed
      */
-    public function getCharactersData()
+    public function getCharactersData(Request $request)
     {
 
-        $characters = $this->getAllCharactersWithAffiliations();
+        $characters = ($request->filtered === 'true') ?
+            auth()->user()->group->users
+                ->filter(function ($user) {
+                    if(! $user->name === 'admin' || $user->id === 1)
+                        return false;
+
+                    return true;
+                })
+                ->map(function ($user) {
+                    return $user->character;
+            }) :
+            $this->getAllCharactersWithAffiliations();
 
         return Datatables::of($characters)
             ->editColumn('name', function ($row) {
@@ -68,7 +83,27 @@ class CharacterController extends Controller
                 return view('web::character.partials.alliancename', compact('row'))
                     ->render();
             })
+            ->editColumn('actions', function ($row) {
+
+                return view('web::character.partials.delete', compact('row'))
+                    ->render();
+            })
             ->make(true);
 
+    }
+
+    /**
+     * @param int $character_id
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function deleteCharacter(int $character_id)
+    {
+
+        CharacterInfo::find($character_id)->delete();
+
+        return redirect()->back()->with(
+            'success', 'Character deleted!'
+        );
     }
 }

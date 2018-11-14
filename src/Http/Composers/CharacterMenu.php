@@ -57,6 +57,7 @@ class CharacterMenu extends AbstractMenu
      * @param  View $view
      *
      * @return void
+     * @throws \Seat\Web\Exceptions\PackageMenuBuilderException
      */
     public function compose(View $view)
     {
@@ -71,7 +72,8 @@ class CharacterMenu extends AbstractMenu
             foreach (config('package.character.menu') as $menu_data) {
 
                 $prepared_menu = $this->load_plugin_menu('character', $menu_data, true);
-                array_push($menu, $prepared_menu);
+                if (! is_null($prepared_menu))
+                    array_push($menu, $prepared_menu);
 
             }
         }

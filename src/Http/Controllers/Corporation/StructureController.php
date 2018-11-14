@@ -20,15 +20,29 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-namespace Seat\Web\Models\Acl;
+namespace Seat\Web\Http\Controllers\Corporation;
 
-use Illuminate\Database\Eloquent\Model;
+use Seat\Services\Repositories\Corporation\Structures;
+use Seat\Web\Http\Controllers\Controller;
 
 /**
- * Class RoleUser.
- * @package Seat\Web\Models\Acl
+ * Class StructureController.
+ * @package Seat\Web\Http\Controllers\Corporation
  */
-class RoleUser extends Model
+class StructureController extends Controller
 {
+    use Structures;
 
+    /**
+     * @param int $corporation_id
+     *
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
+    public function getStructures(int $corporation_id)
+    {
+
+        $structures = $this->getCorporationStructures($corporation_id);
+
+        return view('web::corporation.structures', compact('structures'));
+    }
 }

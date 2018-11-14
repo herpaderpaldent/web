@@ -20,45 +20,45 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-namespace Seat\Web\Http\Controllers\Auth;
+namespace Seat\Web\Http\Controllers\Character;
 
-use Illuminate\Foundation\Auth\SendsPasswordResetEmails;
+use Seat\Services\Repositories\Character\Fittings;
 use Seat\Web\Http\Controllers\Controller;
 
 /**
- * Class ForgotPasswordController.
- * @package Seat\Web\Http\Controllers\Auth
+ * Class FittingController.
+ * @package Seat\Web\Http\Controllers\Character
  */
-class ForgotPasswordController extends Controller
+class FittingController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Password Reset Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller is responsible for handling password reset emails and
-    | includes a trait which assists in sending these notifications from
-    | your application to your users. Feel free to explore this trait.
-    |
-    */
 
-    use SendsPasswordResetEmails;
+    use Fittings;
 
     /**
-     * Create a new controller instance.
+     * @param int $character_id
+     *
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
-    public function __construct()
+    public function getFittings(int $character_id)
     {
 
-        $this->middleware('guest');
+        $fittings = $this->getCharacterFullFittings($character_id);
+
+        return view('web::character.fittings', compact('fittings'));
     }
 
     /**
+     * @param int $character_id
+     * @param int $fitting_id
+     *
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
-    public function showLinkRequestForm()
+    public function getFittingItems(int $character_id, int $fitting_id)
     {
 
-        return view('web::auth.password');
+        $fitting = $this->getCharacterFitting($character_id, $fitting_id);
+        $items = $this->getCharacterFittingItems($fitting_id);
+
+        return view('web::character.fittingitems', compact('fitting', 'items'));
     }
 }

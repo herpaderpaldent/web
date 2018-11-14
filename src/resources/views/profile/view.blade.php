@@ -19,6 +19,7 @@
 
           <legend>{{ trans('web::seat.user_interface') }}</legend>
 
+          @if(auth()->user()->name != 'admin')
           <!-- Select Basic -->
           <div class="form-group">
             <label class="col-md-4 control-label"
@@ -35,6 +36,7 @@
               </select>
             </div>
           </div>
+          @endif
 
           <!-- Select Basic -->
           <div class="form-group">
@@ -184,13 +186,7 @@
     </div>
   </div>
 
-  <div class="panel panel-default">
-    <div class="panel-body">
-      {{ trans('web::seat.third_party_access') }}
-      <a href="https://community.eveonline.com/support/third-party-applications/" target="_blank">Third Party
-        Applications</a>
-    </div>
-  </div>
+
 
 @stop
 
@@ -241,19 +237,19 @@
                           <div class="form-group">
                             <label for="current_email">{{ trans('web::seat.current_email') }}</label>
                             <input type="email" name="current_email" class="form-control" placeholder="Current Email"
-                                   value="{{ auth()->user()->email }}" disabled="disabled"/>
+                                   value="{{ setting('email_address') }}" disabled="disabled"/>
                           </div>
 
                           <div class="form-group">
                             <label for="new_email">{{ trans('web::seat.new_email') }}</label>
                             <input type="email" name="new_email" class="form-control" placeholder="New Email"
-                                   required="required" />
+                                   required="required"/>
                           </div>
 
                           <div class="form-group">
                             <label for="new_email_confirmation">{{ trans('web::seat.confirm_new_email') }}</label>
                             <input type="email" name="new_email_confirmation" class="form-control"
-                                   id="email_confirmation" placeholder="New Email Confirmation" required="required" />
+                                   id="email_confirmation" placeholder="New Email Confirmation" required="required"/>
                           </div>
 
                         </div><!-- /.box-body -->
@@ -327,6 +323,7 @@
             </li>
 
             <!-- scopes -->
+            @if(auth()->user()->name != 'admin')
             <li>
 
               <!-- Button trigger modal -->
@@ -350,17 +347,17 @@
                       <table class="table table-condensed table-hover table-responsive">
                         <tbody>
 
-                          @unless(is_null($scopes))
+                        @unless(is_null($scopes))
 
-                            @foreach($scopes as $scope)
+                          @foreach($scopes as $scope)
 
-                              <tr>
-                                <td>{{ $scope }}</td>
-                              </tr>
+                            <tr>
+                              <td>{{ $scope }}</td>
+                            </tr>
 
-                            @endforeach
+                          @endforeach
 
-                          @endunless
+                        @endunless
 
                         </tbody>
                       </table>
@@ -371,6 +368,7 @@
               </div>
 
             </li>
+            @endif
           </ul>
 
         </div>
@@ -378,7 +376,7 @@
 
           <ul class="list-unstyled">
             <li class="list-header">{{ trans_choice('web::seat.role', 2) }}</li>
-            @foreach($user->roles as $role)
+            @foreach($user->group->roles as $role)
               <li>
                 <i class="fa fa-group"></i>
                 <span @if($role->title == 'Superuser') class="text-danger" @endif>
@@ -395,12 +393,26 @@
   </div>
 
   <div class="panel panel-default">
+    <div class="panel-body">
+      <p>
+        {{ trans('web::seat.third_party_access') }}
+      </p>
+      <a href="https://community.eveonline.com/support/third-party-applications/" target="_blank"
+         class="btn btn-success btn-xs pull-right">
+        {{ trans('web::seat.view_third_party_access') }}
+      </a>
+    </div>
+  </div>
+
+  @if(auth()->user()->name != 'admin')
+  <div class="panel panel-default">
     <div class="panel-heading">
       <h3 class="panel-title">
 
         {{ trans('web::seat.linked_characters') }}
 
         <span class="pull-right">
+
           <a href="{{ route('auth.eve') }}" class="btn btn-primary btn-xs">
             {{ trans('web::seat.link_another_character') }}
           </a>
@@ -421,6 +433,17 @@
                 {!! img('character', $character->id, 64, ['class' => 'img-circle eve-icon small-icon']) !!}
                 {{ $character->name }}
 
+                @if ($character->refresh_token )
+                  <button data-toggle="tooltip" title="" class="btn btn-xs btn-link" data-original-title="Valid Token">
+                    <i class="fa fa-check text-success"></i>
+                  </button>
+                @else
+                  <button data-toggle="tooltip" title="" class="btn btn-xs btn-link" data-original-title="Invalid Token"
+                          aria-describedby="tooltip257244">
+                    <i class="fa fa-exclamation-triangle text-danger"></i>
+                  </button>
+                @endif
+
               </li>
             @endforeach
 
@@ -431,6 +454,7 @@
 
     </div>
   </div>
+  @endif
 
   <span class="text-center">
     {{ trans('web::seat.account_help') }}

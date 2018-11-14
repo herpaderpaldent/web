@@ -24,12 +24,14 @@ namespace Seat\Web\Events;
 
 use DateTime;
 use Illuminate\Auth\Events\Login as LoginEvent;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Request;
+use Seat\Console\Bus\CharacterTokenShouldUpdate;
+use Seat\Console\Bus\CorporationTokenShouldUpdate;
 use Seat\Web\Models\UserLoginHistory;
 
 /**
  * Class Login.
+ *
  * @package Seat\Web\Events
  */
 class Login
@@ -57,11 +59,13 @@ class Login
         $message = 'User logged in from ' . Request::getClientIp();
         event('security.log', [$message, 'authentication']);
 
-        // Dispatch an update job for the character_id
-        // TODO: Write a job that can be dispatched without the need
-        // to rely on Artisan.
-        Artisan::call('esi:update:characters', [
-            'character_id' => $event->user->character_id,
-        ]);
+        if ($event->user->refresh_token()->exists()) {
+
+            // Update Character information
+            (new CharacterTokenShouldUpdate($event->user->refresh_token, 'high'))->fire();
+
+            // Update Corporation information
+            (new CorporationTokenShouldUpdate($event->user->refresh_token, 'high'))->fire();
+        }
     }
 }

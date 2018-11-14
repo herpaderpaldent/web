@@ -99,16 +99,6 @@ Route::group([
             include __DIR__ . '/Routes/Queue/Status.php';
         });
 
-        // Api Key Routes
-        Route::group([
-            'namespace' => 'Api',
-            'prefix'    => 'api-key',
-        ], function () {
-
-            include __DIR__ . '/Routes/Api/Key.php';
-
-        });
-
         // Corporation Routes
         Route::group([
             'namespace' => 'Corporation',
@@ -142,7 +132,7 @@ Route::group([
                 include __DIR__ . '/Routes/Configuration/User.php';
             });
 
-            // Access Mangement
+            // Access Management
             Route::group(['prefix' => 'access'], function () {
 
                 include __DIR__ . '/Routes/Configuration/Access.php';
@@ -166,12 +156,6 @@ Route::group([
                 include __DIR__ . '/Routes/Configuration/Schedule.php';
             });
 
-            // Import
-            Route::group(['prefix' => 'import'], function () {
-
-                include __DIR__ . '/Routes/Configuration/Import.php';
-            });
-
             // SeAT Settings
             Route::group(['prefix' => 'settings'], function () {
 
@@ -180,8 +164,8 @@ Route::group([
 
         });
 
-        // Impersonation Helper Group. This one is Seperate purely
-        // because we dont want to restrict this to superusers only.
+        // Impersonation Helper Group. This one is Separate purely
+        // because we don't want to restrict this to superusers only.
         // For obvious reasons I hope...
         Route::group([
             'namespace' => 'Configuration',
@@ -197,6 +181,7 @@ Route::group([
             'prefix'    => 'tools',
         ], function () {
 
+            include __DIR__ . '/Routes/Tools/Job.php';
             include __DIR__ . '/Routes/Tools/Standings.php';
         });
 

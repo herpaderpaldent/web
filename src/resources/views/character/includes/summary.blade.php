@@ -11,7 +11,9 @@
         {{ $summary->name }}
       </h3>
 
-      <p class="text-muted text-center"><span rel="id-to-name">{{ $summary->corporation_id }}</span></p>
+      <p class="text-muted text-center"><span class="id-to-name"
+                                              data-id="{{ $summary->corporation_id }}">{{ trans('web::seat.unknown') }}</span>
+      </p>
 
       <table class="table table-condensed table-hover">
         <thead></thead>
@@ -24,12 +26,15 @@
             <tr>
               <td>
 
-                <a href="{{ route(\Illuminate\Support\Facades\Route::currentRouteName(), ['character_id' => $character->character_id]) }}">
+                <a href="{{ route(\Illuminate\Support\Facades\Route::currentRouteName(),
+                 array_merge(request()->route()->parameters, ['character_id' => $character->character_id])) }}">
                   {!! img('character', $character->character_id, 64, ['class' => 'img-circle eve-icon small-icon']) !!}
                   {{ $character->name }}
                 </a>
 
-                <span rel="id-to-name" class="text-muted pull-right">{{ $character->corporation_id }}</span>
+                <p class="text-muted pull-right"><span class="id-to-name"
+                                                       data-id="{{ $character->character->corporation_id }}">{{ trans('web::seat.unknown') }}</span>
+                </p>
               </td>
             </tr>
 
@@ -51,18 +56,22 @@
             @endif
         </dd>
 
-        <dt>{{ trans_choice('web::seat.skillpoint', 2) }}</dt>
-        <dd>{{ number($summary->skills->sum('skillpoints_in_skill'), 0) }}</dd>
+        @if(auth()->user()->has('character.skills'))
+          <dt>{{ trans_choice('web::seat.skillpoint', 2) }}</dt>
+          <dd>{{ number($summary->skills->sum('skillpoints_in_skill'), 0) }}</dd>
+        @endif
 
-        <dt>{{ trans('web::seat.account_balance') }}</dt>
-        <dd>
-          @if(!is_null($summary->balance))
-            {{ number($summary->balance->balance) }}
-          @endif
-        </dd>
+        @if(auth()->user()->has('character.journal') || auth()->user()->has('character.transactions'))
+          <dt>{{ trans('web::seat.account_balance') }}</dt>
+          <dd>
+            @if(!is_null($summary->balance))
+              {{ number($summary->balance->balance) }}
+            @endif
+          </dd>
+        @endif
 
       <dt>{{ trans('web::seat.current_ship') }}</dt>
-        <dd>{{ $summary->shipTypeName }} called <i>{{ $summary->shipName }}</i></dd>
+        <dd>{{ $summary->ship->type->typeName }} called <i>{{ $summary->ship->ship_name }}</i></dd>
 
         <dt>{{ trans('web::seat.last_location') }}</dt>
         <dd>{{ $summary->lastKnownLocation }}</dd>
@@ -94,9 +103,9 @@
   </div>
   <div class="panel-footer">
     <span class="text-center center-block">
-      <a href="http://eveboard.com/pilot/{{ $summary->name }}"
+      <a href="http://eveskillboard.com/pilot/{{ $summary->name }}"
          target="_blank">
-        <img src="{{ asset('web/img/eveboard.png') }}">
+        <img src="{{ asset('web/img/eveskillboard.png') }}">
       </a>
       <a href="https://forums.eveonline.com/u/{{ str_replace(' ', '_', $summary->name) }}/summary"
          target="_blank">

@@ -20,38 +20,34 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
+namespace Seat\Web\Http\Composers;
 
-class CreatePersonMembersTable extends Migration
+use Illuminate\Contracts\View\View;
+use Seat\Eveapi\Models\Status\EsiStatus;
+use Seat\Eveapi\Traits\RateLimitsEsiCalls;
+use Seat\Services\Repositories\Configuration\UserRespository;
+
+/**
+ * Class Esi.
+ * @package Seat\Web\Http\Composers
+ */
+class Esi
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
-    public function up()
-    {
-
-        Schema::create('person_members', function (Blueprint $table) {
-
-            $table->increments('id');
-
-            $table->integer('person_id');
-            $table->integer('key_id');
-
-            $table->timestamps();
-        });
-    }
+    use UserRespository, RateLimitsEsiCalls;
 
     /**
-     * Reverse the migrations.
+     * Bind data to the view.
+     *
+     * @param  View $view
      *
      * @return void
+     * @throws \Exception
      */
-    public function down()
+    public function compose(View $view)
     {
 
-        Schema::drop('person_members');
+        $view->with('esi_status', EsiStatus::latest()->first());
+        $view->with('is_rate_limited', $this->isEsiRateLimited());
+        $view->with('rate_limit_ttl', $this->getRateLimitKeyTtl());
     }
 }

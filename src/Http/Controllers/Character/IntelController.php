@@ -22,7 +22,7 @@
 
 namespace Seat\Web\Http\Controllers\Character;
 
-use Seat\Eveapi\Models\Character\CharacterSheet;
+use Seat\Eveapi\Models\Character\CharacterInfo;
 use Seat\Services\Repositories\Character\Intel;
 use Seat\Web\Http\Controllers\Controller;
 use Seat\Web\Http\Validation\NewIntelNote;
@@ -56,7 +56,7 @@ class IntelController extends Controller
     /**
      * @param int $character_id
      *
-     * @return
+     * @return mixed
      */
     public function getTopWalletJournalData(int $character_id)
     {
@@ -64,17 +64,21 @@ class IntelController extends Controller
         $top = $this->characterTopWalletJournalInteractions($character_id);
 
         return Datatables::of($top)
-            ->editColumn('characterName', function ($row) {
+            ->editColumn('ref_type', function ($row) {
+
+                return ucwords(str_replace('_', ' ', $row->ref_type));
+            })
+            ->editColumn('character_id', function ($row) {
 
                 return view('web::character.intel.partials.charactername', compact('row'))
                     ->render();
             })
-            ->editColumn('corporationName', function ($row) {
+            ->editColumn('corporation_id', function ($row) {
 
                 return view('web::character.intel.partials.corporationname', compact('row'))
                     ->render();
             })
-            ->editColumn('allianceName', function ($row) {
+            ->editColumn('alliance_id', function ($row) {
 
                 return view('web::character.intel.partials.alliancename', compact('row'))
                     ->render();
@@ -86,7 +90,7 @@ class IntelController extends Controller
     /**
      * @param int $character_id
      *
-     * @return
+     * @return mixed
      */
     public function getTopTransactionsData(int $character_id)
     {
@@ -94,17 +98,17 @@ class IntelController extends Controller
         $top = $this->characterTopWalletTransactionInteractions($character_id);
 
         return Datatables::of($top)
-            ->editColumn('characterName', function ($row) {
+            ->editColumn('character_id', function ($row) {
 
                 return view('web::character.intel.partials.charactername', compact('row'))
                     ->render();
             })
-            ->editColumn('corporationName', function ($row) {
+            ->editColumn('corporation_id', function ($row) {
 
                 return view('web::character.intel.partials.corporationname', compact('row'))
                     ->render();
             })
-            ->editColumn('allianceName', function ($row) {
+            ->editColumn('alliance_id', function ($row) {
 
                 return view('web::character.intel.partials.alliancename', compact('row'))
                     ->render();
@@ -116,7 +120,7 @@ class IntelController extends Controller
     /**
      * @param int $character_id
      *
-     * @return
+     * @return mixed
      */
     public function getTopMailFromData(int $character_id)
     {
@@ -124,17 +128,17 @@ class IntelController extends Controller
         $top = $this->characterTopMailInteractions($character_id);
 
         return Datatables::of($top)
-            ->editColumn('characterName', function ($row) {
+            ->editColumn('character_id', function ($row) {
 
                 return view('web::character.intel.partials.charactername', compact('row'))
                     ->render();
             })
-            ->editColumn('corporationName', function ($row) {
+            ->editColumn('corporation_id', function ($row) {
 
                 return view('web::character.intel.partials.corporationname', compact('row'))
                     ->render();
             })
-            ->editColumn('allianceName', function ($row) {
+            ->editColumn('alliance_id', function ($row) {
 
                 return view('web::character.intel.partials.alliancename', compact('row'))
                     ->render();
@@ -206,7 +210,7 @@ class IntelController extends Controller
     public function getNotesData(int $character_id)
     {
 
-        return Datatables::of(CharacterSheet::getNotes($character_id))
+        return Datatables::of(CharacterInfo::getNotes($character_id))
             ->addColumn('actions', function ($row) {
 
                 return view('web::character.intel.partials.notesactions', compact('row'))
@@ -226,7 +230,7 @@ class IntelController extends Controller
     {
 
         return response()->json(
-            CharacterSheet::getNote($character_id, $note_id)->first());
+            CharacterInfo::getNote($character_id, $note_id)->first());
 
     }
 
@@ -239,7 +243,7 @@ class IntelController extends Controller
     public function postAddNew(NewIntelNote $request, int $character_id)
     {
 
-        CharacterSheet::addNote(
+        CharacterInfo::addNote(
             $character_id, $request->input('title'), $request->input('note'));
 
         return redirect()->back()
@@ -256,7 +260,7 @@ class IntelController extends Controller
     public function getDeleteNote(int $character_id, int $note_id)
     {
 
-        CharacterSheet::deleteNote($character_id, $note_id);
+        CharacterInfo::deleteNote($character_id, $note_id);
 
         return redirect()->back()
             ->with('success', 'Note deleted!');
@@ -272,7 +276,7 @@ class IntelController extends Controller
     public function postUpdateNote(UpdateIntelNote $request, int $character_id)
     {
 
-        CharacterSheet::updateNote(
+        CharacterInfo::updateNote(
             $character_id, $request->input('note_id'),
             $request->input('title'),
             $request->input('note'));

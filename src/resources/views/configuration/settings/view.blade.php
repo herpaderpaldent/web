@@ -31,6 +31,42 @@
             </div>
           </div>
 
+          <legend>{{ trans('web::seat.maintenance') }}</legend>
+
+          <!-- Text input-->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="cleanup">{{ trans('web::seat.cleanup_data') }}</label>
+            <div class="col-md-6">
+              <select id="cleanup" name="cleanup_data" class="form-control">
+                <option value="yes"
+                        @if(setting('cleanup_data', true) == "yes") selected @endif>
+                  {{ trans('web::seat.yes') }}
+                </option>
+                <option value="no"
+                        @if(setting('cleanup_data', true) == "no") selected @endif>
+                  {{ trans('web::seat.no') }}
+                </option>
+              </select>
+              <span class="help-block">
+                {{ trans('web::seat.cleanup_data_help') }}
+              </span>
+            </div>
+          </div>
+
+          <legend>{{ trans_choice('web::seat.queue_worker', 2) }}</legend>
+
+          <!-- Text input-->
+          <div class="form-group">
+            <label class="col-md-4 control-label" for="worker">{{ trans_choice('web::seat.worker', 2) }}</label>
+            <div class="col-md-6">
+              <input id="worker" name="queue_workers" type="text"
+                     class="form-control input-md" value="{{ setting('queue_workers', true) }}">
+              <span class="help-block">
+                {{ trans('web::seat.queue_worker_help') }}
+              </span>
+            </div>
+          </div>
+
           <legend>{{ trans('web::seat.registration') }}</legend>
 
           <!-- Select Basic -->
@@ -68,7 +104,7 @@
               </select>
               <span class="help-block">
                 {{ trans('web::seat.tracking_help') }}
-                <a href="http://seat-docs.readthedocs.io/en/latest/admin_guides/tracking/">Usage Tracking</a>
+                <a href="https://eveseat.github.io/docs/admin_guides/understanding_tracking/">Usage Tracking</a>
               </span>
             </div>
           </div>

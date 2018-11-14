@@ -29,3 +29,8 @@ Route::get('/home/chart/server-status', [
     'as'   => 'home.chart.serverstatus',
     'uses' => 'HomeController@getServerStatusChartData',
 ]);
+
+Route::get('/home/chart/server-response-times', [
+    'as'   => 'home.chart.serverresponse',
+    'uses' => 'HomeController@getEsiResponseTimeChartData',
+]);

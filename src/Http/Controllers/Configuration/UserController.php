@@ -26,6 +26,7 @@ use Illuminate\Http\Request;
 use Seat\Services\Repositories\Configuration\UserRespository;
 use Seat\Web\Http\Controllers\Controller;
 use Seat\Web\Http\Validation\EditUser;
+use Seat\Web\Http\Validation\ReassignUser;
 
 /**
  * Class UserController.
@@ -41,9 +42,9 @@ class UserController extends Controller
     public function getAll()
     {
 
-        $users = $this->getAllFullUsers();
+        $groups = $this->getAllGroups();
 
-        return view('web::configuration.users.list', compact('users'));
+        return view('web::configuration.users.list', compact('groups'));
     }
 
     /**
@@ -56,11 +57,18 @@ class UserController extends Controller
 
         $user = $this->getFullUser($user_id);
 
+        // get all groups except the one containing admin as admin account is special account
+        // and the one to which the current user is already attached.
+        $groups = $this->getAllGroups()->filter(function ($group, $key) use ($user_id) {
+
+            return $group->users->where('name', 'admin')->isEmpty() && $group->users->where('id', $user_id)->isEmpty();
+        });
+
         $login_history = $user->login_history()->orderBy('created_at', 'desc')->take(15)
             ->get();
 
         return view('web::configuration.users.edit',
-            compact('user', 'login_history'));
+            compact('user', 'groups', 'login_history'));
     }
 
     /**
@@ -78,6 +86,30 @@ class UserController extends Controller
         ]);
 
         $user->save();
+
+        return redirect()->back()
+            ->with('success', trans('web::seat.user_updated'));
+    }
+
+    /**
+     * @param \Seat\Web\Http\Validation\ReassignUser $request
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function postReassignuser(ReassignUser $request)
+    {
+
+        $user = $this->getUser($request->input('user_id'));
+        $current_group = $user->group;
+
+        $user->fill([
+            'group_id' => $request->input('group_id'),
+        ]);
+
+        $user->save();
+
+        // Ensure the old group is not an orphan now.
+        if ($current_group->users->isEmpty()) $current_group->delete();
 
         return redirect()->back()
             ->with('success', trans('web::seat.user_updated'));
@@ -110,7 +142,14 @@ class UserController extends Controller
             return redirect()->back()
                 ->with('warning', trans('web::seat.self_delete_warning'));
 
-        $this->getUser($user_id)->delete();
+        $user = $this->getUser($user_id);
+        $group = $user->group;
+
+        // Delete the user.
+        $user->delete();
+
+        // Ensure the orphan group is cleaned up.
+        if ($group->users->isEmpty()) $group->delete();
 
         return redirect()->back()
             ->with('success', trans('web::seat.user_deleted'));
@@ -150,12 +189,12 @@ class UserController extends Controller
     {
 
         // If there is no user set in the session, abort!
-        if (! session('impersonation_origin', false))
+        if (! session()->has('impersonation_origin'))
             abort(404);
 
         // Log the impersonation revert event.
         event('security.log', [
-            'Reverting impersonation back to ' . session('impersonation_origin')->name,
+            'Reverting impersonation back to ' . session()->get('impersonation_origin')->name,
             'authentication',
         ]);
 

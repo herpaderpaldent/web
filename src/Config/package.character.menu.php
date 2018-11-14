@@ -44,13 +44,6 @@ return [
         'route'          => 'character.view.calendar',
     ],
     [
-        'name'           => 'channels',
-        'label'          => 'web::seat.channels',
-        'permission'     => 'character.channels',
-        'highlight_view' => 'channels',
-        'route'          => 'character.view.channels',
-    ],
-    [
         'name'           => 'contacts',
         'label'          => 'web::seat.contacts',
         'permission'     => 'character.contacts',
@@ -63,6 +56,13 @@ return [
         'permission'     => 'character.contracts',
         'highlight_view' => 'contracts',
         'route'          => 'character.view.contracts',
+    ],
+    [
+        'name'           => 'fittings',
+        'label'          => 'web::seat.fittings',
+        'permission'     => 'character.fittings',
+        'highlight_view' => 'fittings',
+        'route'          => 'character.view.fittings',
     ],
     [
         'name'           => 'industry',
@@ -98,6 +98,13 @@ return [
         'permission'     => 'character.market',
         'highlight_view' => 'market',
         'route'          => 'character.view.market',
+    ],
+    [
+        'name'           => 'mining-ledger',
+        'label'          => 'web::seat.mining',
+        'permission'     => 'character.mining',
+        'highlight_view' => 'mining-ledger',
+        'route'          => 'character.view.mining_ledger',
     ],
     [
         'name'           => 'notifications',

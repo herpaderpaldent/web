@@ -31,13 +31,86 @@ use Illuminate\Notifications\Notifiable;
 use Seat\Eveapi\Models\Character\CharacterInfo;
 use Seat\Eveapi\Models\RefreshToken;
 use Seat\Services\Models\UserSetting;
+use Seat\Services\Settings\Profile;
 use Seat\Web\Acl\AccessChecker;
 use Seat\Web\Models\Acl\Affiliation;
-use Seat\Web\Models\Acl\Role;
 
 /**
  * Class User.
  * @package Seat\Web\Models
+ *
+ * @SWG\Definition(
+ *     description="User",
+ *     title="User",
+ *     type="object"
+ * )
+ *
+ * @SWG\Property(
+ *     type="integer",
+ *     format="int64",
+ *     minimum=90000000,
+ *     description="ID",
+ *     property="id"
+ * )
+ *
+ * @SWG\Property(
+ *     type="string",
+ *     description="Name",
+ *     maxLength=255,
+ *     property="name"
+ * )
+ *
+ * @SWG\Property(
+ *     type="string",
+ *     format="email",
+ *     description="E-Mail address",
+ *     property="email"
+ * )
+ *
+ * @SWG\Property(
+ *     type="boolean",
+ *     description="Account status",
+ *     property="active"
+ * )
+ *
+ * @SWG\Property(
+ *     type="string",
+ *     description="Unique character/EVE Account hash",
+ *     maxLength=255,
+ *     property="character_owner_hash"
+ * )
+ *
+ * @SWG\Property(
+ *     type="string",
+ *     format="date-time",
+ *     description="Last login to SeAT time",
+ *     property="last_login"
+ * )
+ *
+ * @SWG\Property(
+ *     type="string",
+ *     description="Last IP address used to sign in to SeAT",
+ *     property="last_login_source"
+ * )
+ *
+ * @SWG\Property(
+ *     type="integer",
+ *     minimum=1,
+ *     description="Group ID",
+ *     property="group_id"
+ * )
+ *
+ * @SWG\Property(
+ *     type="array",
+ *     description="Array of attached character ID",
+ *     property="associated_character_ids",
+ *     @SWG\Items(type="integer", format="int64", minimum=90000000)
+ * )
+ *
+ * @SWG\Property(
+ *     property="token",
+ *     ref="#/definitions/RefreshToken"
+ * )
  */
 class User extends Model implements AuthenticatableContract, CanResetPasswordContract
 {
@@ -49,12 +122,19 @@ class User extends Model implements AuthenticatableContract, CanResetPasswordCon
     public $incrementing = false;
 
     /**
+     * @var array
+     */
+    protected $casts = [
+        'active' => 'boolean',
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
     protected $fillable = [
-        'name', 'email', 'character_owner_hash',
+        'name', 'email', 'character_owner_hash', 'group_id',
     ];
 
     /**
@@ -75,8 +155,10 @@ class User extends Model implements AuthenticatableContract, CanResetPasswordCon
 
         // Cleanup the user
         $this->login_history()->delete();
-        $this->roles()->detach();
         $this->affiliations()->detach();
+        $this->refresh_token()->forceDelete();
+
+        $this->settings()->delete();
 
         return parent::delete();
     }
@@ -93,17 +175,6 @@ class User extends Model implements AuthenticatableContract, CanResetPasswordCon
     }
 
     /**
-     * This user may have certain roles assigned.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
-     */
-    public function roles()
-    {
-
-        return $this->belongsToMany(Role::class);
-    }
-
-    /**
      * This user may be affiliated manually to
      * other characterID's and or corporations.
      *
@@ -114,6 +185,35 @@ class User extends Model implements AuthenticatableContract, CanResetPasswordCon
 
         return $this->belongsToMany(Affiliation::class)
             ->withPivot('not');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function refresh_token()
+    {
+
+        return $this->hasOne(RefreshToken::class, 'character_id', 'id');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function settings()
+    {
+
+        return $this->hasMany(UserSetting::class, 'group_id', 'group_id');
+    }
+
+    /**
+     * Get the group the current user belongs to.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function group()
+    {
+
+        return $this->belongsTo(Group::class);
     }
 
     /**
@@ -137,6 +237,19 @@ class User extends Model implements AuthenticatableContract, CanResetPasswordCon
     }
 
     /**
+     * Return the email address for this user based on the
+     * email address setting.
+     *
+     * @return mixed
+     * @throws \Seat\Services\Exceptions\SettingException
+     */
+    public function getEmailAttribute()
+    {
+
+        return Profile::get('email_address', $this->group->id);
+    }
+
+    /**
      * Return the character ID's this user is associated with as a
      * result of common group memberships.
      *
@@ -148,39 +261,10 @@ class User extends Model implements AuthenticatableContract, CanResetPasswordCon
     public function associatedCharacterIds()
     {
 
-        return $this->groups()->get()->map(function ($group) {
+        if (! $this->group) {
+            return collect();
+        }
 
-            return $group->users->pluck('id');
-
-        })->flatten();
-    }
-
-    /**
-     * Get the group the current user belongs to.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
-     */
-    public function groups()
-    {
-
-        return $this->belongsToMany(Group::class);
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
-     */
-    public function refresh_token()
-    {
-
-        return $this->hasOne(RefreshToken::class, 'character_id', 'id');
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function settings()
-    {
-
-        return $this->hasMany(UserSetting::class);
+        return $this->group->users->pluck('id')->flatten();
     }
 }

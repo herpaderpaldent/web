@@ -40,7 +40,7 @@ class HomeController extends Controller
      * @return \Illuminate\View\View
      * @throws \Seat\Services\Exceptions\SettingException
      */
-    public function getHome() : View
+    public function getHome(): View
     {
 
         // Warn if the admin contact has not been set yet.
@@ -48,16 +48,19 @@ class HomeController extends Controller
             if (Seat::get('admin_contact') === 'seatadmin@localhost.local')
                 session()->flash('warning', trans('web::seat.admin_contact_warning'));
 
+        // Warn if a refresh token is missing.
+        if (! auth()->user()->refresh_token)
+            session()->flash('warning', trans('web::seat.refresh_token_warning'));
+
         $server_status = $this->getEveLastServerStatus();
         $total_character_isk = $this->getTotalCharacterIsk();
         $total_character_skillpoints = $this->getTotalCharacterSkillpoints();
         $total_character_killmails = $this->getTotalCharacterKillmails();
-//        $newest_mail = $this->getAllCharacterNewestMail();
-        $newest_mail = collect();
+        $total_character_mining = $this->getTotalCharacterMiningIsk();
 
         return view('web::home', compact(
             'server_status', 'total_character_isk', 'total_character_skillpoints',
-            'total_character_killmails', 'newest_mail'
+            'total_character_killmails', 'total_character_mining'
         ));
     }
 
@@ -67,12 +70,12 @@ class HomeController extends Controller
     public function getServerStatusChartData()
     {
 
-        $data = $this->getEveServerStatuses();
+        $data = $this->getEveServerStatuses(50);
 
         return response()->json([
             'labels'   => $data->map(function ($item) {
 
-                return $item->currentTime;
+                return $item->created_at->toDateTimeString();
             })->toArray(),
             'datasets' => [
                 [
@@ -83,11 +86,39 @@ class HomeController extends Controller
                     'borderColor'     => 'rgba(60,141,188,0.8)',
                     'data'            => $data->map(function ($item) {
 
-                        return $item->onlinePlayers;
+                        return $item->players;
                     })->toArray(),
                 ],
             ],
         ]);
+    }
 
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getEsiResponseTimeChartData()
+    {
+
+        $data = $this->getEsiResponseTimes(50);
+
+        return response()->json([
+            'labels'   => $data->map(function ($item) {
+
+                return '"' . $item->status . '" @ ' . $item->created_at->toDateTimeString();
+            })->toArray(),
+            'datasets' => [
+                [
+                    'label'           => 'Response Time',
+                    'fill'            => false,
+                    'lineTension'     => 0.1,
+                    'backgroundColor' => 'rgba(60,141,188,0.9)',
+                    'borderColor'     => 'rgba(60,141,188,0.8)',
+                    'data'            => $data->map(function ($item) {
+
+                        return $item->request_time;
+                    })->toArray(),
+                ],
+            ],
+        ]);
     }
 }

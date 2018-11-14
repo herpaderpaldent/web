@@ -20,25 +20,37 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-namespace Seat\Web\Http\Controllers\Character;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use Seat\Services\Repositories\Character\ChatChannels;
-use Seat\Web\Http\Controllers\Controller;
-
-class ChannelsController extends Controller
+class RemoveMainCharacterFromGroups extends Migration
 {
-    use ChatChannels;
-
     /**
-     * @param $character_id
+     * Run the migrations.
      *
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * @return void
      */
-    public function getChannels(int $character_id)
+    public function up()
     {
 
-        $channels = $this->getCharacterChatChannelsFull($character_id);
+        Schema::table('groups', function (Blueprint $table) {
 
-        return view('web::character.channels', compact('channels'));
+            $table->dropColumn('main_character_id');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+
+        Schema::table('groups', function (Blueprint $table) {
+
+            $table->string('main_character_id')->after('id')->nullable();
+        });
     }
 }

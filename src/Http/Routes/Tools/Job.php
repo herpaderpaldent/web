@@ -20,43 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-namespace Seat\Web\Models;
-
-use Illuminate\Database\Eloquent\Model;
-
-/**
- * Class Person.
- * @package Seat\Web\Models
- */
-class Person extends Model
-{
-    /**
-     * @var array
-     */
-    protected $fillable = [
-        'main_character_id', 'main_character_name', ];
-
-    /**
-     * Make sure we cleanup on delete.
-     *
-     * @return bool|null
-     * @throws \Exception
-     */
-    public function delete()
-    {
-
-        // Cleanup the person group
-        $this->members()->delete();
-
-        return parent::delete();
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function members()
-    {
-
-        return $this->hasMany(PersonMember::class);
-    }
-}
+Route::get('/dispatch/{character_id}/{job_name}', [
+    'middleware' => 'characterbouncer:jobs',
+    'as'         => 'tools.jobs.dispatch',
+    'uses'       => 'JobController@getDispatchUpdateJob',
+]);

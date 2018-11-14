@@ -20,14 +20,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-return [
+namespace Seat\Web\Models\Acl;
 
-    'rpc'   => [
-        'address'  => env('SUPERVISOR_RPC_ADDRESS', '127.0.0.1'),
-        'username' => env('SUPERVISOR_RPC_USERNAME', 'seat'),
-        'password' => env('SUPERVISOR_RPC_PASSWORD', 'seat'),
-        'port'     => env('SUPERVISOR_RPC_PORT', 9001),
-    ],
-    'group' => env('SUPERVISOR_GROUP', 'seat'),
+use Illuminate\Database\Eloquent\Model;
 
-];
+/**
+ * Class GroupRole.
+ * @package Seat\Web\Models\Acl
+ */
+class GroupRole extends Model
+{
+
+}

@@ -3,11 +3,23 @@
 @section('title', trans_choice('web::seat.character', 1) . ' ' . trans('web::seat.calendar'))
 @section('page_header', trans_choice('web::seat.character', 1) . ' ' . trans('web::seat.calendar'))
 
+@inject('request', 'Illuminate\Http\Request')
+
 @section('character_content')
 
   <div class="panel panel-default">
     <div class="panel-heading">
-      <h3 class="panel-title">{{ trans('web::seat.calendar_events') }}</h3>
+      <h3 class="panel-title">
+        {{ trans('web::seat.calendar_events') }}
+        @if(auth()->user()->has('character.jobs'))
+          <span class="pull-right">
+            <a href="{{ route('tools.jobs.dispatch', ['character_id' => $request->character_id, 'job_name' => 'character.calendar']) }}"
+               style="color: #000000">
+              <i class="fa fa-refresh" data-toggle="tooltip" title="{{ trans('web::seat.update_calendar') }}"></i>
+            </a>
+          </span>
+        @endif
+      </h3>
     </div>
     <div class="panel-body">
 
@@ -32,7 +44,7 @@
             </td>
             <td>
               {!! img('auto', $event->detail->owner_id, 32, ['class' => 'img-circle eve-icon small-icon']) !!}
-              <span rel="id-to-name">{{ $event->detail->owner_id }}</span>
+              <span class="id-to-name" data-id="{{ $event->detail->owner_id }}">{{ trans('web::seat.unknown') }}</span>
             </td>
             <td>
               <i class="fa fa-comment" data-toggle="popover" data-placement="top" title="" data-html="true"

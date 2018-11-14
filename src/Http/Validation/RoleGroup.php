@@ -20,12 +20,40 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-Route::get('/', [
-    'as'   => 'configuration.import.list',
-    'uses' => 'ImportController@getIndex',
-]);
+namespace Seat\Web\Http\Validation;
 
-Route::post('/csv', [
-    'as'   => 'configuration.import.csv',
-    'uses' => 'ImportController@postCsv',
-]);
+use Illuminate\Foundation\Http\FormRequest;
+
+/**
+ * Class RoleUser.
+ * @package Seat\Web\Http\Validation
+ */
+class RoleGroup extends FormRequest
+{
+    /**
+     * Authorize the request by default.
+     *
+     * @return bool
+     */
+    public function authorize()
+    {
+
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array
+     */
+    public function rules()
+    {
+
+        $rules = [
+            'role_id' => 'required|exists:roles,id',
+            'groups'  => 'required|exists:groups,id',
+        ];
+
+        return $rules;
+    }
+}

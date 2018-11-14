@@ -23,15 +23,16 @@
 namespace Seat\Web\Http\Validation;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Seat\Web\Models\Group;
 
 /**
- * Class RoleUser.
+ * Class ReassignUser.
  * @package Seat\Web\Http\Validation
  */
-class RoleUser extends FormRequest
+class ReassignUser extends FormRequest
 {
     /**
-     * Authorize the request by default.
+     * Determine if the user is authorized to make this request.
      *
      * @return bool
      */
@@ -49,11 +50,25 @@ class RoleUser extends FormRequest
     public function rules()
     {
 
-        $rules = [
-            'role_id' => 'required|exists:roles,id',
-            'users.*' => 'required|exists:users,name',
-        ];
+        return [
+            'user_id'  => 'required|exists:users,id',
+            'group_id' => [
+                'required',
+                'exists:groups,id',
+                function ($attribute, $value, $fail) {
 
-        return $rules;
+                    // retrieve admin group, if any
+                    $admin_group = Group::whereHas('users', function ($query) {
+
+                        $query->where('name', 'admin');
+                    })->first();
+
+                    // if the requested group_id is matching the admin one; skip
+                    if (! is_null($admin_group) && $admin_group->id == $value) {
+                        return $fail('You cannot attach any user to the admin group relationship.');
+                    }
+                },
+            ],
+        ];
     }
 }
