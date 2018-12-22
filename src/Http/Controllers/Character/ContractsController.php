@@ -161,7 +161,7 @@ class ContractsController extends Controller
             })
             ->addColumn('contents', function ($row) {
 
-                $url = route('character.view.contracts.items', ['character_id' => $row->character_id, 'contract_id' => $row->contract_id ]);
+                $url = route('character.view.contracts.items', ['character_id' => $row->character_id, 'contract_id' => $row->contract_id]);
 
                 return view('web::partials.contractcontentsbutton', compact('row', 'url'));
             })
