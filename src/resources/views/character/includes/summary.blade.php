@@ -33,7 +33,7 @@
                 </a>
 
                 <p class="text-muted pull-right"><span class="id-to-name"
-                                                       data-id="{{ $character->character->corporation_id }}">{{ trans('web::seat.unknown') }}</span>
+                                                       data-id="{{ is_null($character->character) ? 0 : $character->character->corporation_id }}">{{ trans('web::seat.unknown') }}</span>
                 </p>
               </td>
             </tr>
@@ -109,7 +109,7 @@
       </a>
       <a href="https://forums.eveonline.com/u/{{ str_replace(' ', '_', $summary->name) }}/summary"
          target="_blank">
-        <img src="{{ asset('web/img/evegate.png') }}">
+        <img src="{{ asset('web/img/evelogo.png') }}">
       </a>
       <a href="http://eve-search.com/search/author/{{ $summary->name }}"
          target="_blank">

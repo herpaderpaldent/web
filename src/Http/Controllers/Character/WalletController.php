@@ -3,7 +3,7 @@
 /*
  * This file is part of SeAT
  *
- * Copyright (C) 2015, 2016, 2017, 2018  Leon Jacobs
+ * Copyright (C) 2015, 2016, 2017, 2018, 2019  Leon Jacobs
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,9 +22,12 @@
 
 namespace Seat\Web\Http\Controllers\Character;
 
+use Seat\Eveapi\Models\Character\CharacterInfo;
+use Seat\Eveapi\Models\Corporation\CorporationInfo;
 use Seat\Services\Repositories\Character\Wallet;
 use Seat\Web\Http\Controllers\Controller;
-use Yajra\Datatables\Datatables;
+use Seat\Web\Models\User;
+use Yajra\DataTables\DataTables;
 
 /**
  * Class WalletController.
@@ -49,27 +52,77 @@ class WalletController extends Controller
      * @param int $character_id
      *
      * @return mixed
+     * @throws \Exception
      */
     public function getJournalData(int $character_id)
     {
+        if (! request()->has('all_linked_characters'))
+            return response('required url parameter is missing!', 400);
 
-        $journal = $this->getCharacterWalletJournal($character_id, false);
+        if (request('all_linked_characters') === 'false')
+            $character_ids = collect($character_id);
 
-        return Datatables::of($journal)
+        $user_group = User::find($character_id)->group->users
+            ->filter(function ($user) {
+                return $user->name !== 'admin' && $user->id !== 1;
+            })
+            ->pluck('id');
+
+        if (request('all_linked_characters') === 'true')
+            $character_ids = $user_group;
+
+        $journal = $this->getCharacterWalletJournal($character_ids);
+
+        return DataTables::of($journal)
             ->editColumn('ref_type', function ($row) {
 
-                return view('web::partials.journaltranstype', compact('row'))
-                    ->render();
+                return view('web::partials.journaltranstype', compact('row'));
             })
             ->editColumn('first_party_id', function ($row) {
 
-                return view('web::partials.journalfrom', compact('row'))
-                    ->render();
+                $character_id = $row->character_id;
+
+                if (optional($row->first_party)->category === 'character') {
+
+                    $character = CharacterInfo::find($row->first_party_id) ?: $row->first_party_id;
+
+                    return view('web::partials.character', compact('character', 'character_id'));
+                }
+
+                if (optional($row->first_party)->category === 'corporation'){
+
+                    $corporation = CorporationInfo::find($row->first_party_id) ?: $row->first_party_id;
+
+                    return view('web::partials.corporation', compact('corporation', 'character_id'));
+                }
+
+                return view('web::partials.unknown', [
+                    'unknown_id' => $row->first_party_id,
+                    'character_id' => $character_id,
+                ]);
             })
             ->editColumn('second_party_id', function ($row) {
 
-                return view('web::partials.journalto', compact('row'))
-                    ->render();
+                $character_id = $row->character_id;
+
+                if (optional($row->second_party)->category === 'character') {
+
+                    $character = CharacterInfo::find($row->second_party_id) ?: $row->second_party_id;
+
+                    return view('web::partials.character', compact('character', 'character_id'));
+                }
+
+                if (optional($row->second_party)->category === 'corporation') {
+
+                    $corporation = CorporationInfo::find($row->second_party_id) ?: $row->second_party_id;
+
+                    return view('web::partials.corporation', compact('corporation', 'character_id'));
+                }
+
+                return view('web::partials.unknown', [
+                    'unknown_id' => $row->second_party_id,
+                    'character_id' => $character_id,
+                ]);
             })
             ->editColumn('amount', function ($row) {
 
@@ -79,6 +132,11 @@ class WalletController extends Controller
 
                 return number($row->balance);
             })
+            ->addColumn('is_in_group', function ($row) use ($user_group) {
+
+                return in_array($row->first_party_id, $user_group->toArray()) && in_array($row->second_party_id, $user_group->toArray());
+            })
+            ->rawColumns(['ref_type', 'first_party_id', 'second_party_id'])
             ->make(true);
 
     }
@@ -91,7 +149,7 @@ class WalletController extends Controller
     public function getJournalGraphBalance(int $character_id)
     {
 
-        $data = $this->getCharacterWalletJournal($character_id, false)
+        $data = $this->getCharacterWalletJournal(collect($character_id))
             ->orderBy('date', 'desc')
             ->take(150)
             ->get();
@@ -143,31 +201,54 @@ class WalletController extends Controller
      * @param int $character_id
      *
      * @return mixed
+     * @throws \Exception
      */
     public function getTransactionsData(int $character_id)
     {
 
-        $transactions = $this->getCharacterWalletTransactions($character_id, false);
+        if (! request()->has('all_linked_characters'))
+            return abort(500);
 
-        return Datatables::of($transactions)
+        if (request('all_linked_characters') === 'false')
+            $character_ids = collect($character_id);
+
+        $user_group = User::find($character_id)->group->users
+            ->filter(function ($user) {
+
+                return $user->name !== 'admin' && $user->id !== 1;
+            })
+            ->pluck('id');
+
+        if (request('all_linked_characters') === 'true')
+            $character_ids = $user_group;
+
+        $transactions = $this->getCharacterWalletTransactions($character_ids);
+
+        return DataTables::of($transactions)
             ->editColumn('is_buy', function ($row) {
 
-                return view('web::partials.transactiontype', compact('row'))
-                    ->render();
+                return view('web::partials.transactionbuysell', compact('row'));
             })
             ->editColumn('unit_price', function ($row) {
 
                 return number($row->unit_price);
             })
+            ->addColumn('item_view', function ($row) {
+                return view('web::partials.transactiontype', compact('row'));
+            })
             ->addColumn('total', function ($row) {
 
                 return number($row->unit_price * $row->quantity);
             })
-            ->editColumn('client_id', function ($row) {
+            ->addColumn('client_view', function ($row) {
 
-                return view('web::partials.transactionclient', compact('row'))
-                    ->render();
+                $character_id = $row->character_id;
+
+                $character = CharacterInfo::find($row->client_id) ?: $row->client_id;
+
+                return view('web::partials.character', compact('character', 'character_id'));
             })
+            ->rawColumns(['is_buy', 'client_view', 'item_view'])
             ->make(true);
 
     }

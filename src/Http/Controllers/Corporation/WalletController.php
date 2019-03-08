@@ -3,7 +3,7 @@
 /*
  * This file is part of SeAT
  *
- * Copyright (C) 2015, 2016, 2017, 2018  Leon Jacobs
+ * Copyright (C) 2015, 2016, 2017, 2018, 2019  Leon Jacobs
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,9 +22,11 @@
 
 namespace Seat\Web\Http\Controllers\Corporation;
 
+use Seat\Eveapi\Models\Character\CharacterInfo;
+use Seat\Eveapi\Models\Corporation\CorporationInfo;
 use Seat\Services\Repositories\Corporation\Wallet;
 use Seat\Web\Http\Controllers\Controller;
-use Yajra\Datatables\Datatables;
+use Yajra\DataTables\DataTables;
 
 /**
  * Class WalletController.
@@ -42,7 +44,9 @@ class WalletController extends Controller
     public function getJournal(int $corporation_id)
     {
 
-        return view('web::corporation.wallet.journal.journal');
+        $divisions = $this->getCorporationWalletDivisions($corporation_id);
+
+        return view('web::corporation.wallet.journal.journal', compact('divisions'));
 
     }
 
@@ -50,27 +54,65 @@ class WalletController extends Controller
      * @param int $corporation_id
      *
      * @return mixed
+     * @throws \Exception
      */
     public function getJournalData(int $corporation_id)
     {
+        if (! request()->has('division'))
+            return abort(500);
 
-        $journal = $this->getCorporationWalletJournal($corporation_id, false);
+        $journal = $this->getCorporationWalletJournal($corporation_id, (int) request('division'));
 
-        return Datatables::of($journal)
+        return DataTables::of($journal)
             ->editColumn('ref_type', function ($row) {
 
-                return view('web::partials.journaltranstype', compact('row'))
-                    ->render();
+                return view('web::partials.journaltranstype', compact('row'));
             })
             ->editColumn('first_party_id', function ($row) {
 
-                return view('web::partials.journalfrom', compact('row'))
-                    ->render();
+                $character_id = $row->character_id;
+
+                if (optional($row->first_party)->category === 'character') {
+
+                    $character = CharacterInfo::find($row->first_party_id) ?: $row->first_party_id;
+
+                    return view('web::partials.character', compact('character', 'character_id'));
+                }
+
+                if (optional($row->first_party)->category === 'corporation'){
+
+                    $corporation = CorporationInfo::find($row->first_party_id) ?: $row->first_party_id;
+
+                    return view('web::partials.corporation', compact('corporation', 'character_id'));
+                }
+
+                return view('web::partials.unknown', [
+                    'unknown_id' => $row->first_party_id,
+                    'character_id' => $character_id,
+                ]);
             })
             ->editColumn('second_party_id', function ($row) {
 
-                return view('web::partials.journalto', compact('row'))
-                    ->render();
+                $character_id = $row->character_id;
+
+                if (optional($row->second_party)->category === 'character') {
+
+                    $character = CharacterInfo::find($row->second_party_id) ?: $row->second_party_id;
+
+                    return view('web::partials.character', compact('character', 'character_id'));
+                }
+
+                if (optional($row->second_party)->category === 'corporation') {
+
+                    $corporation = CorporationInfo::find($row->second_party_id) ?: $row->second_party_id;
+
+                    return view('web::partials.corporation', compact('corporation', 'character_id'));
+                }
+
+                return view('web::partials.unknown', [
+                    'unknown_id' => $row->second_party_id,
+                    'character_id' => $character_id,
+                ]);
             })
             ->editColumn('amount', function ($row) {
 
@@ -80,6 +122,7 @@ class WalletController extends Controller
 
                 return number($row->balance);
             })
+            ->rawColumns(['ref_type', 'first_party_id', 'second_party_id'])
             ->make(true);
 
     }
@@ -99,13 +142,14 @@ class WalletController extends Controller
      * @param int $corporation_id
      *
      * @return mixed
+     * @throws \Exception
      */
     public function getTransactionsData(int $corporation_id)
     {
 
         $transactions = $this->getCorporationWalletTransactions($corporation_id, false);
 
-        return Datatables::of($transactions)
+        return DataTables::of($transactions)
             ->editColumn('is_buy', function ($row) {
 
                 return view('web::partials.transactiontype', compact('row'))
@@ -124,6 +168,7 @@ class WalletController extends Controller
                 return view('web::partials.transactionclient', compact('row'))
                     ->render();
             })
+            ->rawColumns(['is_buy', 'client_id'])
             ->make(true);
 
     }

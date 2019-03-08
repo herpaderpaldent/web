@@ -3,7 +3,7 @@
 /*
  * This file is part of SeAT
  *
- * Copyright (C) 2015, 2016, 2017, 2018  Leon Jacobs
+ * Copyright (C) 2015, 2016, 2017, 2018, 2019  Leon Jacobs
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,14 @@
 namespace Seat\Web\Http\Controllers\Configuration;
 
 use Illuminate\Http\Request;
+use Seat\Eveapi\Models\Character\CharacterInfo;
 use Seat\Services\Repositories\Configuration\UserRespository;
 use Seat\Web\Http\Controllers\Controller;
 use Seat\Web\Http\Validation\EditUser;
 use Seat\Web\Http\Validation\ReassignUser;
+use Seat\Web\Models\Group;
+use Seat\Web\Models\User;
+use Yajra\DataTables\DataTables;
 
 /**
  * Class UserController.
@@ -42,9 +46,89 @@ class UserController extends Controller
     public function getAll()
     {
 
-        $groups = $this->getAllGroups();
+        if (! request()->ajax())
+            return view('web::configuration.users.list');
 
-        return view('web::configuration.users.list', compact('groups'));
+        if (! request()->has('filter'))
+            return abort(500);
+
+        $groups = $this->getAllFullUsers();
+
+        if (request('filter') === 'valid')
+            $groups->has('refresh_token');
+
+        if (request('filter') === 'invalid')
+            $groups->doesntHave('refresh_token');
+
+        return DataTables::of($groups)
+            ->editColumn('refresh_token', function ($row) {
+                return view('web::configuration.users.partials.refresh-token', compact('row'));
+            })
+            ->editColumn('name', function ($row) {
+
+                $character = CharacterInfo::find($row->id) ?: $row->id;
+
+                return view('web::partials.character', compact('character'));
+            })
+            ->editColumn('last_login', function ($row) {
+                return human_diff($row->last_login);
+            })
+            ->editColumn('email', function ($row) {
+                if (empty($row->email))
+                    return trans('web::seat.no_email');
+
+                return $row->email;
+            })
+            ->addColumn('action_buttons', function ($row) {
+                return view('web::configuration.users.partials.action-buttons', compact('row'));
+            })
+            ->addColumn('roles', function (User $user) {
+
+                if (! $user->group)
+                    return trans('web::seat.no') . ' ' . trans_choice('web::seat.role', 2);
+
+                $roles = $user->group->roles->map(function ($role) {
+                    return $role->title;
+                })->implode(', ');
+
+                return ! empty($roles) ? $roles : trans('web::seat.no') . ' ' . trans_choice('web::seat.role', 2);
+            })
+            ->addColumn('main_character', function (User $user) {
+
+                if (! $user->group)
+                    return '';
+
+                return optional($user->group->main_character)->name ?: '';
+            })
+            ->addColumn('main_character_blade', function (User $user) {
+
+                $main_character_id = null;
+
+                if ($user->group)
+                    $main_character_id = optional($user->group->main_character)->character_id ?: null;
+
+                $character = CharacterInfo::find($main_character_id) ?: $main_character_id;
+
+                return view('web::partials.character', compact('character'));
+            })
+            ->filterColumn('main_character', function ($query, $keyword) {
+                $group_id = Group::all()->filter(function ($group) use ($keyword) {
+
+                    return false !== stristr(optional($group->main_character)->name, $keyword);
+                })->map(function ($group) { return $group->id; });
+
+                $query->whereIn('users.group_id', $group_id->toArray());
+            })
+            ->filterColumn('email', function ($query, $keyword) {
+                $user_id = User::all()->filter(function ($user) use ($keyword) {
+
+                    return false !== stristr($user->email, $keyword);
+                })->map(function ($user) { return $user->id; });
+
+                $query->whereIn('users.id', $user_id->toArray());
+            })
+            ->rawColumns(['refresh_token', 'name', 'action_buttons', 'main_character_blade'])
+            ->make(true);
     }
 
     /**
@@ -109,7 +193,7 @@ class UserController extends Controller
         $user->save();
 
         // Ensure the old group is not an orphan now.
-        if ($current_group->users->isEmpty()) $current_group->delete();
+        if (! is_null($current_group) && $current_group->users->isEmpty()) $current_group->delete();
 
         return redirect()->back()
             ->with('success', trans('web::seat.user_updated'));
@@ -173,6 +257,19 @@ class UserController extends Controller
         event('security.log', [
             'Impersonating ' . $user->name, 'authentication',
         ]);
+
+        // ensure the user got a valid group - spawn it otherwise
+        if (is_null($user->group)) {
+            Group::forceCreate([
+                'id' => $user->group_id,
+            ]);
+
+            // force laravel to update model relationship information
+            $user->load('group');
+
+            // assign the main_character
+            setting(['main_character_id', $user->id, $user->group_id]);
+        }
 
         // Login as the new user.
         auth()->login($user);

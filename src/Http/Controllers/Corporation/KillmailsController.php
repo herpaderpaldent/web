@@ -3,7 +3,7 @@
 /*
  * This file is part of SeAT
  *
- * Copyright (C) 2015, 2016, 2017, 2018  Leon Jacobs
+ * Copyright (C) 2015, 2016, 2017, 2018, 2019  Leon Jacobs
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,9 +22,11 @@
 
 namespace Seat\Web\Http\Controllers\Corporation;
 
+use Seat\Eveapi\Models\Character\CharacterInfo;
+use Seat\Eveapi\Models\Corporation\CorporationInfo;
 use Seat\Services\Repositories\Corporation\Killmails;
 use Seat\Web\Http\Controllers\Controller;
-use Yajra\Datatables\Datatables;
+use Yajra\DataTables\DataTables;
 
 /**
  * Class KillmailsController.
@@ -49,33 +51,59 @@ class KillmailsController extends Controller
      * @param int $corporation_id
      *
      * @return mixed
+     * @throws \Exception
      */
     public function getKillmailsData(int $corporation_id)
     {
 
-        $killmails = $this->getCorporationKillmails($corporation_id, false);
+        $killmails = $this->getCorporationKillmails($corporation_id);
 
-        return Datatables::of($killmails)
-            ->editColumn('character_name', function ($row) {
+        return DataTables::of($killmails)
+            ->addColumn('victim', function ($row) {
 
-                return view('web::partials.killmailcharacter', compact('row'))
-                    ->render();
+                if (is_null($row->killmail_victim))
+                    return '';
+
+                $character_id = $row->character_id;
+
+                $character = CharacterInfo::find($row->killmail_victim->character_id) ?: $row->killmail_victim->character_id;
+                $corporation = CorporationInfo::find($row->killmail_victim->corporation_id) ?: $row->killmail_victim->corporation_id;
+
+                $view = view('web::partials.character', compact('character', 'character_id'))
+                    . '</br>'
+                    . view('web::partials.corporation', compact('corporation', 'character_id'));
+
+                $alliance = '';
+
+                if (! empty($row->killmail_victim->alliance_id)) {
+                    $alliance = view('web::partials.alliance', ['alliance' => $row->killmail_victim->alliance_id, 'character_id' => $character_id]);
+                }
+
+                return $view . $alliance;
             })
-            ->editColumn('type_name', function ($row) {
+            ->addColumn('ship', function ($row) {
 
-                return view('web::partials.killmailtype', compact('row'))
-                    ->render();
+                if (is_null($row->killmail_victim))
+                    return '';
+
+                $ship_type = $row->killmail_victim->ship_type;
+
+                return view('web::partials.killmailtype', compact('ship_type'));
             })
-            ->editColumn('item_name', function ($row) {
+            ->addColumn('place', function ($row) {
 
-                return view('web::partials.killmailsystem', compact('row'))
-                    ->render();
+                if (is_null($row->killmail_detail))
+                    return '';
+
+                $place = $row->killmail_detail->solar_system;
+
+                return view('web::partials.killmailsystem', compact('place'));
             })
             ->addColumn('zkb', function ($row) {
 
-                return view('web::partials.killmailzkb', compact('row'))
-                    ->render();
+                return view('web::partials.killmailzkb', compact('row'));
             })
+            ->rawColumns(['victim', 'ship', 'place', 'zkb'])
             ->make(true);
 
     }

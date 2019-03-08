@@ -3,7 +3,7 @@
 /*
  * This file is part of SeAT
  *
- * Copyright (C) 2015, 2016, 2017, 2018  Leon Jacobs
+ * Copyright (C) 2015, 2016, 2017, 2018, 2019  Leon Jacobs
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,8 @@ namespace Seat\Web\Http\Controllers\Character;
 use Seat\Services\Repositories\Character\Market;
 use Seat\Services\Repositories\Eve\EveRepository;
 use Seat\Web\Http\Controllers\Controller;
-use Yajra\Datatables\Datatables;
+use Seat\Web\Models\User;
+use Yajra\DataTables\DataTables;
 
 /**
  * Class MarketController.
@@ -52,22 +53,39 @@ class MarketController extends Controller
      * @param int $character_id
      *
      * @return mixed
+     * @throws \Exception
      */
     public function getMarketData(int $character_id)
     {
 
-        $orders = $this->getCharacterMarketOrders($character_id, false);
+        if (! request()->has('all_linked_characters'))
+            return abort(500);
 
-        return Datatables::of($orders)
+        if (request('all_linked_characters') === 'false')
+            $character_ids = collect($character_id);
+
+        $user_group = User::find($character_id)->group->users
+            ->filter(function ($user) {
+                return $user->name !== 'admin' && $user->id !== 1;
+            })
+            ->pluck('id');
+
+        if (request('all_linked_characters') === 'true')
+            $character_ids = $user_group;
+
+        $orders = $this->getCharacterMarketOrders($character_ids);
+
+        return DataTables::of($orders)
             ->addColumn('bs', function ($row) {
 
-                return view('web::partials.marketbuysell', compact('row'))
-                    ->render();
+                return view('web::partials.marketbuysell', compact('row'));
             })
             ->addColumn('vol', function ($row) {
 
-                return view('web::partials.marketvolume', compact('row'))
-                    ->render();
+                if ($row->is_buy_order)
+                    return number($row->volume_total, 0);
+
+                return number($row->volume_remain, 0) . ' / ' . number($row->volume_total, 0);
             })
             ->editColumn('price', function ($row) {
 
@@ -79,9 +97,9 @@ class MarketController extends Controller
             })
             ->editColumn('typeName', function ($row) {
 
-                return view('web::partials.markettype', compact('row'))
-                    ->render();
+                return view('web::partials.markettype', compact('row'));
             })
+            ->rawColumns(['bs', 'typeName'])
             ->make(true);
 
     }

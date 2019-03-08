@@ -3,7 +3,7 @@
 /*
  * This file is part of SeAT
  *
- * Copyright (C) 2015, 2016, 2017, 2018  Leon Jacobs
+ * Copyright (C) 2015, 2016, 2017, 2018, 2019  Leon Jacobs
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,9 +22,12 @@
 
 namespace Seat\Web\Http\Controllers\Character;
 
+use Seat\Eveapi\Models\Character\CharacterInfo;
+use Seat\Eveapi\Models\Corporation\CorporationInfo;
 use Seat\Services\Repositories\Character\Killmails;
 use Seat\Web\Http\Controllers\Controller;
-use Yajra\Datatables\Datatables;
+use Seat\Web\Models\User;
+use Yajra\DataTables\DataTables;
 
 /**
  * Class KillmailController.
@@ -50,26 +53,69 @@ class KillmailController extends Controller
      * @param int $character_id
      *
      * @return mixed
+     * @throws \Exception
      */
     public function getKillmailsData(int $character_id)
     {
 
-        $killmails = $this->getCharacterKillmails($character_id, false);
+        if (! request()->has('all_linked_characters'))
+            return response('required url parameter is missing!', 400);
 
-        return Datatables::of($killmails)
-            ->editColumn('character_name', function ($row) {
+        if (request('all_linked_characters') === 'false')
+            $character_ids = collect($character_id);
 
-                return view('web::partials.killmailcharacter', compact('row'))
+        $user_group = User::find($character_id)->group->users
+            ->filter(function ($user) {
+                return $user->name !== 'admin' && $user->id !== 1;
+            })
+            ->pluck('id');
+
+        if (request('all_linked_characters') === 'true')
+            $character_ids = $user_group;
+
+        $killmails = $this->getCharacterKillmails($character_ids);
+
+        return DataTables::of($killmails)
+            ->addColumn('victim', function ($row) {
+
+                if (is_null($row->killmail_victim))
+                    return '';
+
+                $character_id = $row->character_id;
+
+                $character = CharacterInfo::find($row->killmail_victim->character_id) ?: $row->killmail_victim->character_id;
+                $corporation = CorporationInfo::find($row->killmail_victim->corporation_id) ?: $row->killmail_victim->corporation_id;
+
+                $view = view('web::partials.character', compact('character', 'character_id'))
+                    . '</br>'
+                    . view('web::partials.corporation', compact('corporation', 'character_id'));
+
+                $alliance = '';
+
+                if (! empty($row->killmail_victim->alliance_id)) {
+                    $alliance = view('web::partials.alliance', ['alliance' => $row->killmail_victim->alliance_id, 'character_id' => $character_id]);
+                }
+
+                    return $view . $alliance;
+            })
+            ->addColumn('ship', function ($row) {
+
+                if (is_null($row->killmail_victim))
+                    return '';
+
+                $ship_type = $row->killmail_victim->ship_type;
+
+                return view('web::partials.killmailtype', compact('ship_type'))
                     ->render();
             })
-            ->editColumn('type_name', function ($row) {
+            ->addColumn('place', function ($row) {
 
-                return view('web::partials.killmailtype', compact('row'))
-                    ->render();
-            })
-            ->editColumn('item_name', function ($row) {
+                if (is_null($row->killmail_detail))
+                    return '';
 
-                return view('web::partials.killmailsystem', compact('row'))
+                $place = $row->killmail_detail->solar_system;
+
+                return view('web::partials.killmailsystem', compact('place'))
                     ->render();
             })
             ->addColumn('zkb', function ($row) {
@@ -77,6 +123,7 @@ class KillmailController extends Controller
                 return view('web::partials.killmailzkb', compact('row'))
                     ->render();
             })
+            ->rawColumns(['victim', 'ship', 'place', 'zkb'])
             ->make(true);
 
     }
